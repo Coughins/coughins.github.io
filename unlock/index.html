@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Your full report — Shopify feed audit</title>
+<style>
+:root{--ground:#f3f4f7;--surface:#fff;--ink:#10151c;--dim:#5c6675;--line:#dde1e8;
+--line-strong:#c6ccd6;--accent:#1b3a6b;--crit:#a82a1c;--warn:#8a5a06;--ok:#186b4a;
+--crit-soft:#e9c4bd;--warn-soft:#e8d5ab;--ok-soft:#b9dccb}
+@media(prefers-color-scheme:dark){:root{--ground:#0e1116;--surface:#161a20;--ink:#e7eaef;
+--dim:#939ba7;--line:#252b34;--line-strong:#39414c;--accent:#83a9e6;--crit:#e07a63;
+--warn:#d3a445;--ok:#59bd8b;--crit-soft:#4a2a24;--warn-soft:#463719;--ok-soft:#1e3d31}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:920px;margin:0 auto;padding:32px 20px 80px}
+h1{font-size:28px;margin:0 0 6px;letter-spacing:-.01em}
+.kicker{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:0 0 4px}
+.lede{color:var(--dim);margin:0 0 24px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;margin:0 0 18px}
+label{display:block;font-weight:600;margin:0 0 6px;font-size:14px}
+input[type=text]{width:100%;padding:11px 13px;font-size:15px;border-radius:9px;
+border:1px solid var(--line-strong);background:var(--ground);color:var(--ink);
+font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px}
+button{font:inherit;font-weight:600;padding:11px 20px;border-radius:9px;border:1px solid var(--accent);
+background:var(--accent);color:#fff;cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}
+button.ghost{background:transparent;color:var(--accent)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:12px}
+.row>div{flex:1;min-width:220px}
+.hint{font-size:13px;color:var(--dim);margin:8px 0 0}
+.status{margin:12px 0 0;font-size:14px;color:var(--dim);min-height:20px}
+.err{color:var(--crit);font-weight:600}
+.hidden{display:none}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;
+font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid}
+.b-ok{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:0 0 18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.stat b{display:block;font-size:26px;line-height:1.2}
+.stat span{font-size:12px;color:var(--dim)}
+.dl{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.issue{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line-strong);
+border-radius:10px;padding:16px;margin:0 0 12px}
+.issue.crit{border-left-color:var(--crit)}
+.issue.warn{border-left-color:var(--warn)}
+.issue.ok{border-left-color:var(--ok)}
+.issue h3{margin:0;font-size:16px;display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.issue p{margin:8px 0 0;font-size:14px;color:var(--dim)}
+.issue ul{margin:10px 0 0;padding-left:20px;font-size:14px;max-height:260px;overflow:auto}
+.issue li{margin:2px 0}
+.issue a{color:var(--accent)}
+.n{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:14px;color:var(--dim)}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px}
+footer{margin-top:36px;font-size:13px;color:var(--dim);border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="kicker">Full report</p>
+<h1>Your Shopify feed audit</h1>
+<p class="lede">Enter the licence key from your purchase, then the store you want.
+Everything runs in your own browser — the store data never passes through a server of mine.</p>
+
+<!-- ---------------------------------------------------------------- gate -->
+<div class="card" id="gate">
+  <label for="key">Licence key</label>
+  <input type="text" id="key" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX"
+         autocomplete="off" spellcheck="false">
+  <p class="hint">It is on your Gumroad receipt and on the page shown straight after checkout.</p>
+  <div class="row"><div style="flex:0 0 auto"><button id="unlock">Unlock</button></div></div>
+  <p class="status" id="gateStatus"></p>
+</div>
+
+<!-- ---------------------------------------------------------------- scan -->
+<div class="card hidden" id="scan">
+  <p style="margin:0 0 12px"><span class="badge b-ok">Licence verified</span>
+    <span class="hint" id="tier" style="margin-left:8px"></span></p>
+  <label for="store">Store domain</label>
+  <input type="text" id="store" placeholder="yourstore.com" autocomplete="off" spellcheck="false">
+  <div class="row"><div style="flex:0 0 auto"><button id="run">Run full audit</button></div>
+    <div style="flex:0 0 auto"><button class="ghost" id="forget">Use a different licence</button></div></div>
+  <p class="status" id="scanStatus"></p>
+</div>
+
+<div id="out"></div>
+
+<footer>
+  <p>Public catalogue data only, read from the store's own <code>/products.json</code>.
+  No customer data, no orders, no logins. Nothing is uploaded — the audit runs entirely
+  in this browser, and the only network call besides the store itself is a one-off licence
+  check against Gumroad.</p>
+</footer>
+</div>
+
+<script>
+// Extracted verbatim from feed-check.html by build-unlock.mjs.
+// Do not edit here - edit the checker and rebuild.
+var PAGE = 250, MAX_PAGES = 40, DELAY = 250;
+var num = function (v) { var n = parseFloat(v); return isFinite(n) ? n : null; };
+var pct = function (a, b) { return b ? Math.round((a / b) * 1000) / 10 : 0; };
+var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+function origin(raw) {
+    var v = String(raw).trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+    if (!v) throw new Error('EMPTY');
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(v)) throw new Error('BADHOST');
+    return 'https://' + v;
+  }
+async function load(base, onProgress) {
+    var products = [], seen = {};
+    for (var page = 1; page <= MAX_PAGES; page += 1) {
+      var res;
+      try {
+        res = await fetch(base + '/products.json?limit=' + PAGE + '&page=' + page,
+                          { headers: { accept: 'application/json' } });
+      } catch (e) { throw new Error(products.length ? 'PARTIAL' : 'UNREACHABLE'); }
+      if (res.status === 404) throw new Error(products.length ? 'PARTIAL' : 'NOTFOUND');
+      if (res.status === 430 || res.status === 429) throw new Error(products.length ? 'PARTIAL' : 'THROTTLED');
+      if (res.status === 401 || res.status === 403) throw new Error(products.length ? 'PARTIAL' : 'LOCKED');
+      if (res.status === 402) throw new Error(products.length ? 'PARTIAL' : 'FROZEN');
+      if (!res.ok) throw new Error(products.length ? 'PARTIAL' : 'HTTPERR');
+      var data;
+      try { data = await res.json(); } catch (e) { throw new Error('NOTSHOPIFY'); }
+      if (!data || !Array.isArray(data.products)) throw new Error('NOTSHOPIFY');
+      if (!data.products.length) break;
+      var added = 0;
+      for (var i = 0; i < data.products.length; i += 1) {
+        var p = data.products[i], id = String(p.id);
+        if (seen[id]) continue;
+        seen[id] = 1; products.push(p); added += 1;
+      }
+      onProgress(products.length);
+      if (data.products.length < PAGE || !added) break;
+      if (page < MAX_PAGES) await sleep(DELAY);
+    }
+    if (!products.length) throw new Error('EMPTY_FEED');
+    return products;
+  }
+var PENALTY = {
+    dead: [0.60, 45], noimg: [0.50, 15], zprice: [2.00, 10], partial: [0.10, 10],
+    cbelow: [1.00, 8], nosku: [0.15, 8], zweight: [0.10, 8], stale: [0.08, 6],
+    dupes: [0.50, 5], cequal: [0.10, 5], notype: [0.06, 5]
+  };
+function audit(base, products) {
+    var F = { dead: [], partial: [], noimg: [], nosku: [], zweight: [], cbelow: [],
+              cequal: [], zprice: [], stale: [], notype: [], dupes: [] };
+    var titles = {}, vTotal = 0, vAvail = 0, now = Date.now(), YEAR = 365 * 864e5;
+
+    products.forEach(function (p) {
+      var vs = p.variants || [], imgs = p.images || [];
+      vTotal += vs.length;
+      var av = vs.filter(function (v) { return v.available === true; });
+      vAvail += av.length;
+      var b = { t: p.title, url: base + '/products/' + p.handle };
+
+      if (vs.length && !av.length) F.dead.push(b);
+      else if (vs.length > 1 && av.length < vs.length) {
+        F.partial.push({ t: p.title, url: b.url, x: (vs.length - av.length) + ' of ' + vs.length + ' variants unavailable' });
+      }
+      if (!imgs.length) F.noimg.push(b);
+      if (!p.product_type || !String(p.product_type).trim()) F.notype.push(b);
+      var k = String(p.title || '').trim().toLowerCase();
+      if (k) { titles[k] = titles[k] || []; titles[k].push(b); }
+      var up = p.updated_at ? Date.parse(p.updated_at) : 0;
+      if (up && now - up > YEAR) {
+        F.stale.push({ t: p.title, url: b.url, x: Math.round((now - up) / 864e5) + ' days since last change' });
+      }
+      vs.forEach(function (v) {
+        var pr = num(v.price), cp = num(v.compare_at_price);
+        var lb = v.title && v.title !== 'Default Title' ? p.title + ' — ' + v.title : p.title;
+        var vb = { t: lb, url: b.url };
+        if (!v.sku || !String(v.sku).trim()) F.nosku.push(vb);
+        if (v.requires_shipping !== false && !v.grams) F.zweight.push(vb);
+        if (pr !== null && cp !== null && cp > 0 && cp < pr) F.cbelow.push(vb);
+        else if (pr !== null && cp !== null && cp > 0 && cp === pr) F.cequal.push(vb);
+        if (pr === null || pr === 0) F.zprice.push(vb);
+      });
+    });
+    Object.keys(titles).forEach(function (k) {
+      if (titles[k].length > 1) {
+        F.dupes.push({ t: titles[k][0].t, url: titles[k][0].url, x: titles[k].length + ' pages share this title' });
+      }
+    });
+
+    var P = products.length;
+    var defs = [
+      ['dead', 'Published products with every variant out of stock', P,
+       'These pages stay live and indexed, keep taking ad clicks, and keep being submitted to Google Shopping and Meta catalogues, where out-of-stock items are usually suppressed or disapproved rather than sold.'],
+      ['partial', 'Products with some but not all variants out of stock', P,
+       'The shopper reaches the page, picks a size or colour, and hits a dead end. It is the most common cause of add-to-cart drop-off on a product page.'],
+      ['noimg', 'Products with no image at all', P,
+       'A feed entry without an image is rejected outright by every major shopping channel.'],
+      ['zprice', 'Variants priced at zero', vTotal,
+       'Either a feed error or a genuine giveaway. Both are worth confirming deliberately.'],
+      ['nosku', 'Variants with no SKU', vTotal,
+       'Missing SKUs break inventory reconciliation, 3PL integrations, and most marketplace or ERP importers.'],
+      ['zweight', 'Shippable variants with zero weight', vTotal,
+       'Carrier-calculated shipping and duty estimates silently fall back to defaults, which usually means undercharging for shipping.'],
+      ['cbelow', 'Variants where the compare-at price is below the selling price', vTotal,
+       'A data error. Themes render it as a strike-through that makes the current price look like an increase, and it can trip advertising policies on misleading pricing.'],
+      ['cequal', 'Variants where the compare-at price equals the selling price', vTotal,
+       'A zero-value discount. Many themes still draw the strike-through, so the shopper sees the same number twice. Usually left over from a finished promotion.'],
+      ['notype', 'Products with no product type', P,
+       'Product type drives collection rules, faceted navigation and channel category mapping.'],
+      ['stale', 'Products untouched for over a year', P,
+       'Long-stale entries are usually abandoned SKUs that should be archived rather than published.'],
+      ['dupes', 'Duplicate product titles', P,
+       'Duplicate titles split search relevance between competing pages and confuse channel de-duplication.']
+    ];
+
+    var deductions = 0;
+    var issues = defs.map(function (d) {
+      var id = d[0], items = F[id], share = pct(items.length, d[2]);
+      var w = PENALTY[id], pen = items.length ? Math.min(w[1], share * w[0]) : 0;
+      deductions += pen;
+      var sev = 'ok';
+      if (items.length) {
+        sev = pen >= 12 ? 'crit' : pen >= 3 ? 'warn' : 'ok';
+        if (id === 'noimg' || id === 'zprice') sev = pen >= 6 ? 'crit' : 'warn';
+      }
+      return { id: id, label: d[1], count: items.length, share: share, why: d[3], items: items, sev: sev, pen: pen };
+    });
+
+    return {
+      host: base.replace(/^https:\/\//, ''),
+      products: P, variants: vTotal, availPct: pct(vAvail, vTotal),
+      dead: F.dead.length, deadPct: pct(F.dead.length, P),
+      score: Math.max(0, Math.round(100 - deductions)),
+      issues: issues
+    };
+  }
+
+// ---- site-src/exports.js ----
+// Browser-side exports for the unlock page: variant rows, CSV, and a real
+// .xlsx built without any library.
+//
+// The Node writer (src/xlsx.js) uses zlib. In the browser we use
+// CompressionStream('deflate-raw') where it exists and fall back to STORED
+// entries where it does not - a stored ZIP is still a valid xlsx, just larger.
+//
+// Same guarantee as the Node writer, and it is the whole reason this exists:
+// only real numbers are written as numbers, so leading zeros in SKUs and
+// barcodes survive.
+
+var VARIANT_COLUMNS = [
+  'store', 'product_id', 'handle', 'title', 'vendor', 'product_type', 'tags',
+  'published_at', 'updated_at', 'product_url', 'variant_id', 'variant_title', 'sku',
+  'barcode', 'option1_name', 'option1_value', 'option2_name', 'option2_value',
+  'option3_name', 'option3_value', 'price', 'compare_at_price', 'discount_pct',
+  'available', 'requires_shipping', 'taxable', 'grams', 'image', 'variant_count', 'image_count'
+];
+
+function variantRows(base, products) {
+  var host = base.replace(/^https?:\/\//, '');
+  var rows = [];
+  (products || []).forEach(function (p) {
+    var names = (p.options || []).map(function (o) { return o.name; });
+    (p.variants || []).forEach(function (v) {
+      var price = num(v.price), cmp = num(v.compare_at_price);
+      rows.push({
+        store: host,
+        product_id: p.id,
+        handle: p.handle,
+        title: p.title,
+        vendor: p.vendor,
+        product_type: p.product_type,
+        tags: Array.isArray(p.tags) ? p.tags.join('|') : (p.tags || ''),
+        published_at: p.published_at,
+        updated_at: p.updated_at,
+        product_url: base + '/products/' + p.handle,
+        variant_id: v.id,
+        variant_title: v.title,
+        sku: v.sku,
+        barcode: v.barcode == null ? '' : v.barcode,
+        option1_name: names[0] || '', option1_value: v.option1 || '',
+        option2_name: names[1] || '', option2_value: v.option2 || '',
+        option3_name: names[2] || '', option3_value: v.option3 || '',
+        price: price,
+        compare_at_price: cmp,
+        discount_pct: price !== null && cmp !== null && cmp > price
+          ? Math.round(((cmp - price) / cmp) * 1000) / 10 : '',
+        available: v.available === true ? 'TRUE' : 'FALSE',
+        requires_shipping: v.requires_shipping === true ? 'TRUE' : 'FALSE',
+        taxable: v.taxable === true ? 'TRUE' : 'FALSE',
+        grams: v.grams == null ? '' : v.grams,
+        image: (v.featured_image && v.featured_image.src) || (p.images && p.images[0] && p.images[0].src) || '',
+        variant_count: (p.variants || []).length,
+        image_count: (p.images || []).length
+      });
+    });
+  });
+  return rows;
+}
+
+function csvEscape(v) {
+  if (v === null || v === undefined) return '';
+  var s = String(v);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function toCsv(rows, columns) {
+  var lines = [columns.map(csvEscape).join(',')];
+  rows.forEach(function (r) {
+    lines.push(columns.map(function (c) { return csvEscape(r[c]); }).join(','));
+  });
+  // BOM so Excel opens UTF-8 correctly on a double click.
+  return '﻿' + lines.join('\r\n') + '\r\n';
+}
+
+// ------------------------------------------------------------------ xlsx
+
+var XLSX_MAX_CELL = 32767;
+
+var XLSX_CONTROL = new RegExp(
+  '[' + (function () {
+    var out = '';
+    for (var i = 0; i < 32; i += 1) {
+      if (i !== 9 && i !== 10 && i !== 13) {
+        out += '\\u' + ('000' + i.toString(16)).slice(-4);
+      }
+    }
+    return out;
+  })() + '\\ufffe\\uffff]', 'g');
+
+function xesc(v) {
+  return String(v).replace(XLSX_CONTROL, '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function colName(n) {
+  var out = '';
+  while (n > 0) { var r = (n - 1) % 26; out = String.fromCharCode(65 + r) + out; n = (n - r - 1) / 26; }
+  return out;
+}
+
+function sheetNameFor(raw, taken) {
+  var base = String(raw == null ? 'Sheet' : raw).replace(/[:\\/?*\[\]]/g, ' ').trim().slice(0, 31) || 'Sheet';
+  var cand = base, n = 2;
+  while (taken[cand.toLowerCase()]) {
+    var sfx = ' (' + n + ')';
+    cand = base.slice(0, 31 - sfx.length) + sfx;
+    n += 1;
+  }
+  taken[cand.toLowerCase()] = 1;
+  return cand;
+}
+
+function crcTable() {
+  var t = new Int32Array(256);
+  for (var i = 0; i < 256; i += 1) {
+    var c = i;
+    for (var k = 0; k < 8; k += 1) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c;
+  }
+  return t;
+}
+var CRC = crcTable();
+
+function crc32(bytes) {
+  var c = -1;
+  for (var i = 0; i < bytes.length; i += 1) c = CRC[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ -1) >>> 0;
+}
+
+var enc = new TextEncoder();
+
+async function deflateRaw(bytes) {
+  if (typeof CompressionStream === 'undefined') return null;
+  try {
+    var cs = new CompressionStream('deflate-raw');
+    var stream = new Blob([bytes]).stream().pipeThrough(cs);
+    var buf = await new Response(stream).arrayBuffer();
+    return new Uint8Array(buf);
+  } catch (e) { return null; }
+}
+
+async function zip(entries) {
+  var now = new Date();
+  var time = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xFFFF;
+  var day = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
+
+  var parts = [], central = [], offset = 0;
+
+  for (var i = 0; i < entries.length; i += 1) {
+    var nameBytes = enc.encode(entries[i][0]);
+    var raw = enc.encode(entries[i][1]);
+    var def = await deflateRaw(raw);
+    var useDef = def && def.length < raw.length;
+    var data = useDef ? def : raw;
+    var method = useDef ? 8 : 0;
+    var sum = crc32(raw);
+
+    var local = new DataView(new ArrayBuffer(30));
+    local.setUint32(0, 0x04034b50, true);
+    local.setUint16(4, 20, true);
+    local.setUint16(6, 0x0800, true);
+    local.setUint16(8, method, true);
+    local.setUint16(10, time, true);
+    local.setUint16(12, day, true);
+    local.setUint32(14, sum, true);
+    local.setUint32(18, data.length, true);
+    local.setUint32(22, raw.length, true);
+    local.setUint16(26, nameBytes.length, true);
+    parts.push(new Uint8Array(local.buffer), nameBytes, data);
+
+    var dir = new DataView(new ArrayBuffer(46));
+    dir.setUint32(0, 0x02014b50, true);
+    dir.setUint16(4, 20, true);
+    dir.setUint16(6, 20, true);
+    dir.setUint16(8, 0x0800, true);
+    dir.setUint16(10, method, true);
+    dir.setUint16(12, time, true);
+    dir.setUint16(14, day, true);
+    dir.setUint32(16, sum, true);
+    dir.setUint32(20, data.length, true);
+    dir.setUint32(24, raw.length, true);
+    dir.setUint16(28, nameBytes.length, true);
+    dir.setUint32(42, offset, true);
+    central.push(new Uint8Array(dir.buffer), nameBytes);
+
+    offset += 30 + nameBytes.length + data.length;
+  }
+
+  var dirSize = central.reduce(function (a, b) { return a + b.length; }, 0);
+  var end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(8, entries.length, true);
+  end.setUint16(10, entries.length, true);
+  end.setUint32(12, dirSize, true);
+  end.setUint32(16, offset, true);
+
+  return new Blob(parts.concat(central, [new Uint8Array(end.buffer)]));
+}
+
+function sheetXml(columns, rows, strings) {
+  var last = colName(columns.length);
+  var height = rows.length + 1;
+  var widths = columns.map(function (c) { return String(c).length; });
+  var body = '<row r="1" s="1">';
+  columns.forEach(function (c, i) {
+    body += '<c r="' + colName(i + 1) + '1" t="s" s="1"><v>' + strings.id(String(c)) + '</v></c>';
+  });
+  body += '</row>';
+
+  rows.forEach(function (row, r) {
+    var ref = r + 2;
+    body += '<row r="' + ref + '">';
+    columns.forEach(function (c, i) {
+      var v = row[c];
+      if (v === null || v === undefined || v === '') return;
+      var cell = colName(i + 1) + ref;
+      if (typeof v === 'number' && isFinite(v)) {
+        var s = String(v);
+        if (s.length > widths[i]) widths[i] = s.length;
+        body += '<c r="' + cell + '"><v>' + s + '</v></c>';
+      } else {
+        var t = String(v).slice(0, XLSX_MAX_CELL);
+        if (t.length > widths[i]) widths[i] = t.length;
+        body += '<c r="' + cell + '" t="s"><v>' + strings.id(t) + '</v></c>';
+      }
+    });
+    body += '</row>';
+  });
+
+  var cols = widths.map(function (w, i) {
+    return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="'
+      + Math.min(Math.max(w + 2, 8), 60) + '" customWidth="1"/>';
+  }).join('');
+
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+    + '<dimension ref="A1:' + last + height + '"/>'
+    + '<sheetViews><sheetView workbookViewId="0">'
+    + '<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>'
+    + '</sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/>'
+    + '<cols>' + cols + '</cols><sheetData>' + body + '</sheetData>'
+    + '<autoFilter ref="A1:' + last + height + '"/></worksheet>';
+}
+
+function stringTable() {
+  var map = Object.create(null), order = [], count = 0;
+  return {
+    id: function (v) {
+      count += 1;
+      var k = ' ' + v;
+      if (map[k] !== undefined) return map[k];
+      map[k] = order.length; order.push(v);
+      return map[k];
+    },
+    xml: function () {
+      var parts = '';
+      for (var i = 0; i < order.length; i += 1) {
+        parts += '<si><t xml:space="preserve">' + xesc(order[i]) + '</t></si>';
+      }
+      return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        + '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="'
+        + count + '" uniqueCount="' + order.length + '">' + parts + '</sst>';
+    }
+  };
+}
+
+async function buildXlsx(sheets) {
+  var REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  var CT = 'application/vnd.openxmlformats-officedocument.spreadsheetml';
+  var DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  var strings = stringTable(), taken = Object.create(null);
+
+  var built = sheets.map(function (s, i) {
+    return {
+      name: sheetNameFor(s.name || ('Sheet' + (i + 1)), taken),
+      xml: sheetXml(s.columns || [], s.rows || [], strings)
+    };
+  });
+
+  var overrides = built.map(function (_, i) {
+    return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="' + CT + '.worksheet+xml"/>';
+  }).join('');
+
+  var entries = [
+    ['[Content_Types].xml', DECL
+      + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+      + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+      + '<Default Extension="xml" ContentType="application/xml"/>'
+      + '<Override PartName="/xl/workbook.xml" ContentType="' + CT + '.sheet.main+xml"/>'
+      + overrides
+      + '<Override PartName="/xl/styles.xml" ContentType="' + CT + '.styles+xml"/>'
+      + '<Override PartName="/xl/sharedStrings.xml" ContentType="' + CT + '.sharedStrings+xml"/>'
+      + '</Types>'],
+    ['_rels/.rels', DECL
+      + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+      + '<Relationship Id="rId1" Type="' + REL + '/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+    ['xl/workbook.xml', DECL
+      + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="' + REL + '"><sheets>'
+      + built.map(function (s, i) {
+        return '<sheet name="' + xesc(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>';
+      }).join('') + '</sheets></workbook>'],
+    ['xl/_rels/workbook.xml.rels', DECL
+      + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+      + built.map(function (_, i) {
+        return '<Relationship Id="rId' + (i + 1) + '" Type="' + REL + '/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>';
+      }).join('')
+      + '<Relationship Id="rId' + (built.length + 1) + '" Type="' + REL + '/styles" Target="styles.xml"/>'
+      + '<Relationship Id="rId' + (built.length + 2) + '" Type="' + REL + '/sharedStrings" Target="sharedStrings.xml"/>'
+      + '</Relationships>']
+  ];
+  built.forEach(function (s, i) { entries.push(['xl/worksheets/sheet' + (i + 1) + '.xml', s.xml]); });
+  entries.push(['xl/styles.xml', DECL
+    + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+    + '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font>'
+    + '<font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'
+    + '<fills count="2"><fill><patternFill patternType="none"/></fill>'
+    + '<fill><patternFill patternType="gray125"/></fill></fills>'
+    + '<borders count="1"><border/></borders>'
+    + '<cellStyleXfs count="1"><xf/></cellStyleXfs>'
+    + '<cellXfs count="2"><xf xfId="0"/><xf xfId="0" fontId="1" applyFont="1"/></cellXfs>'
+    + '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
+    + '</styleSheet>']);
+  entries.push(['xl/sharedStrings.xml', strings.xml()]);
+
+  return zip(entries);
+}
+
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  // Gumroad product ids. Not secrets - they are public identifiers, and the
+  // licence-verify endpoint needs no authentication. Filled by build-unlock.mjs.
+  var PRODUCTS = [
+  {
+    "id": "Wj2iTqnJwLoL24dvrnlK1g==",
+    "permalink": "shopify-feed-audit",
+    "name": "Full audit",
+    "maxProducts": 10000
+  },
+  {
+    "id": "4FBhh6g0sE7p9KgrUH91-Q==",
+    "permalink": "shopify-competitive-set",
+    "name": "Competitive set",
+    "maxProducts": 10000
+  },
+  {
+    "id": "s_O-Wjmu9kFQa8t8cUo0DQ==",
+    "permalink": "shopify-feed-watch",
+    "name": "Feed Watch",
+    "maxProducts": 10000
+  }
+];
+
+  var VERIFY = 'https://api.gumroad.com/v2/licenses/verify';
+  var STORE_KEY = 'sfa.licence';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var gate = $('gate'), scan = $('scan'), out = $('out');
+  var gateStatus = $('gateStatus'), scanStatus = $('scanStatus');
+
+  var licence = null;   // { key, product }
+
+  // localStorage can throw outright in private modes, so every touch is guarded.
+  function remember(v) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(v)); } catch (e) { /* fine */ }
+  }
+  function recall() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { return null; }
+  }
+  function forget() {
+    try { localStorage.removeItem(STORE_KEY); } catch (e) { /* fine */ }
+  }
+
+  // ---------------------------------------------------------------- licence
+
+  // Gumroad requires product_id for products created on or after 9 Jan 2023 and
+  // accepts product_permalink for older ones. Trying both costs one extra
+  // request and removes the need to know which applies.
+  async function verifyOne(product, key, usePermalink) {
+    if (usePermalink && !product.permalink) return null;
+    var body = new URLSearchParams();
+    if (usePermalink) body.set('product_permalink', product.permalink);
+    else body.set('product_id', product.id);
+    body.set('license_key', key);
+    // Without this Gumroad counts every check as a use, which would make the
+    // uses figure meaningless for a page the buyer may reload.
+    body.set('increment_uses_count', 'false');
+    var res = await fetch(VERIFY, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    });
+    var data = null;
+    try { data = await res.json(); } catch (e) { return null; }
+    if (!data || data.success !== true) return null;
+    // A refunded, chargebacked or cancelled purchase must not keep working.
+    var p = data.purchase || {};
+    if (p.refunded === true || p.chargebacked === true || p.disputed === true) return 'REVOKED';
+    if (p.subscription_cancelled_at || p.subscription_failed_at) return 'EXPIRED';
+    return { key: key, product: product };
+  }
+
+  async function verify(key) {
+    var revoked = false;
+    var modes = [false, true]; // product_id first, then product_permalink
+    for (var m = 0; m < modes.length; m += 1) {
+      for (var i = 0; i < PRODUCTS.length; i += 1) {
+        var r = null;
+        try { r = await verifyOne(PRODUCTS[i], key, modes[m]); }
+        catch (e) { throw new Error('NETWORK'); }
+        if (r === 'REVOKED' || r === 'EXPIRED') { revoked = r; continue; }
+        if (r) return r;
+      }
+    }
+    if (revoked) throw new Error(revoked);
+    return null;
+  }
+
+  function showScan() {
+    gate.classList.add('hidden');
+    scan.classList.remove('hidden');
+    $('tier').textContent = licence.product.name + ' · up to '
+      + licence.product.maxProducts.toLocaleString('en-GB') + ' products';
+    var pre = new URLSearchParams(location.search).get('store');
+    if (pre) { $('store').value = pre; run(pre); }
+  }
+
+  async function doUnlock() {
+    var key = $('key').value.trim();
+    if (!key) { gateStatus.innerHTML = '<span class="err">Enter your licence key.</span>'; return; }
+    $('unlock').disabled = true;
+    gateStatus.textContent = 'Checking licence…';
+    try {
+      var r = await verify(key);
+      if (!r) {
+        gateStatus.innerHTML = '<span class="err">That key was not recognised.</span> '
+          + 'Check it against your Gumroad receipt — it should look like '
+          + '<code>XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX</code>.';
+        $('unlock').disabled = false;
+        return;
+      }
+      licence = r;
+      remember({ key: r.key, id: r.product.id });
+      gateStatus.textContent = '';
+      showScan();
+    } catch (e) {
+      var m = e.message === 'REVOKED'
+        ? 'This purchase was refunded or reversed, so the licence is no longer active.'
+        : e.message === 'EXPIRED'
+          ? 'This subscription has ended. Renew it to reactivate the licence.'
+          : 'Could not reach Gumroad to check the licence. Check your connection and try again.';
+      gateStatus.innerHTML = '<span class="err">' + m + '</span>';
+      $('unlock').disabled = false;
+    }
+  }
+
+  // ---------------------------------------------------------------- audit
+
+  var report = null, rawProducts = null;
+
+  async function run(raw) {
+    var base;
+    try { base = origin(raw); }
+    catch (e) {
+      scanStatus.innerHTML = '<span class="err">'
+        + (e.message === 'EMPTY' ? 'Enter a store domain.'
+          : 'That does not look like a domain. Enter it on its own, like <code>allbirds.com</code>.')
+        + '</span>';
+      return;
+    }
+    $('run').disabled = true;
+    out.innerHTML = '';
+    scanStatus.textContent = 'Reading the product feed…';
+    try {
+      var products = await load(base, function (n) {
+        scanStatus.textContent = 'Read ' + n.toLocaleString('en-GB') + ' products…';
+      });
+      rawProducts = products;
+      report = audit(base, products);
+      scanStatus.textContent = '';
+      render(report, base);
+    } catch (e) {
+      scanStatus.innerHTML = '<span class="err">' + message(e.message) + '</span>';
+    }
+    $('run').disabled = false;
+  }
+
+  function message(code) {
+    return {
+      UNREACHABLE: 'Could not read a product feed there. Usually that means the site is not on Shopify, or the domain is misspelled. Try the www. version if you have not.',
+      NOTFOUND: 'No public product feed at that domain.',
+      NOTSHOPIFY: 'That responded, but not with a Shopify product feed.',
+      THROTTLED: 'The store is rate-limiting requests. Wait a minute and try again.',
+      LOCKED: 'That store blocks access to its public feed. I will not work around that.',
+      FROZEN: 'That store is currently unavailable (payment required).',
+      EMPTY_FEED: 'The feed is reachable but contains no published products.',
+      PARTIAL: 'The connection dropped part-way through. Try again.',
+      HTTPERR: 'The store returned an unexpected error.'
+    }[code] || 'Something went wrong reading that store.';
+  }
+
+  // ---------------------------------------------------------------- render
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  var nf = function (x) { return Number(x).toLocaleString('en-GB'); };
+
+  function render(r, base) {
+    var order = { crit: 0, warn: 1, ok: 2 };
+    var sorted = r.issues.slice().sort(function (a, b) {
+      return (order[a.sev] - order[b.sev]) || (b.pen - a.pen);
+    });
+    var flagged = r.issues.filter(function (i) { return i.sev !== 'ok'; }).length;
+
+    var h = '<div class="stats">'
+      + stat(r.score + '<span style="font-size:15px;color:var(--dim)">/100</span>', 'Feed health score')
+      + stat(nf(r.products), 'Published products')
+      + stat(nf(r.dead) + ' <span style="font-size:15px;color:var(--dim)">(' + r.deadPct + '%)</span>', 'Fully out of stock')
+      + stat(r.availPct + '%', 'Variants in stock')
+      + '</div>';
+
+    h += '<div class="card"><b>Downloads</b>'
+      + '<p class="hint">Every product and variant, and every finding. Nothing is truncated.</p>'
+      + '<div class="dl">'
+      + '<button id="dlVarX">Variants (Excel)</button>'
+      + '<button class="ghost" id="dlVarC">Variants (CSV)</button>'
+      + '<button class="ghost" id="dlIssC">Findings (CSV)</button>'
+      + '</div></div>';
+
+    h += '<p class="lede">' + flagged + ' issue' + (flagged === 1 ? '' : 's')
+      + ' flagged, worst first. Checks that passed are listed too.</p>';
+
+    sorted.forEach(function (i) {
+      h += '<div class="issue ' + i.sev + '"><h3><span>' + esc(i.label) + '</span>'
+        + '<span class="n">' + nf(i.count) + (i.count ? ' (' + i.share + '%)' : '') + '</span></h3>'
+        + '<p>' + esc(i.why) + '</p>';
+      if (i.items.length) {
+        h += '<ul>';
+        i.items.forEach(function (it) {
+          h += '<li><a href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer">'
+            + esc(it.t) + '</a>' + (it.x ? ' <span class="n">— ' + esc(it.x) + '</span>' : '') + '</li>';
+        });
+        h += '</ul>';
+      }
+      h += '</div>';
+    });
+
+    out.innerHTML = h;
+
+    var name = r.host.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    $('dlVarX').onclick = function () { downloadXlsx(name, r); };
+    $('dlVarC').onclick = function () {
+      downloadText(name + '-variants.csv', toCsv(variantRows(base, rawProducts), VARIANT_COLUMNS), 'text/csv');
+    };
+    $('dlIssC').onclick = function () {
+      downloadText(name + '-findings.csv', toCsv(issueRows(r), ISSUE_COLUMNS), 'text/csv');
+    };
+  }
+
+  function stat(big, small) {
+    return '<div class="stat"><b>' + big + '</b><span>' + small + '</span></div>';
+  }
+
+  // ---------------------------------------------------------------- exports
+
+  var ISSUE_COLUMNS = ['issue', 'severity', 'item', 'detail', 'url'];
+
+  function issueRows(r) {
+    var rows = [];
+    r.issues.forEach(function (i) {
+      i.items.forEach(function (it) {
+        rows.push({ issue: i.label, severity: i.sev, item: it.t, detail: it.x || '', url: it.url });
+      });
+    });
+    return rows;
+  }
+
+  function downloadText(filename, text, mime) {
+    save(new Blob([text], { type: mime + ';charset=utf-8' }), filename);
+  }
+
+  function save(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+
+  async function downloadXlsx(name, r) {
+    var btn = $('dlVarX'); btn.disabled = true; var was = btn.textContent;
+    btn.textContent = 'Building…';
+    try {
+      var buf = await buildXlsx([
+        { name: 'Variants', columns: VARIANT_COLUMNS, rows: variantRows('https://' + r.host, rawProducts) },
+        { name: 'Findings', columns: ISSUE_COLUMNS, rows: issueRows(r) }
+      ]);
+      save(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+           name + '-audit.xlsx');
+    } catch (e) {
+      alert('Could not build the Excel file in this browser. The CSV downloads still work.');
+    }
+    btn.disabled = false; btn.textContent = was;
+  }
+
+  // ---------------------------------------------------------------- wiring
+
+  $('unlock').addEventListener('click', doUnlock);
+  $('key').addEventListener('keydown', function (e) { if (e.key === 'Enter') doUnlock(); });
+  $('run').addEventListener('click', function () { run($('store').value); });
+  $('store').addEventListener('keydown', function (e) { if (e.key === 'Enter') run($('store').value); });
+  $('forget').addEventListener('click', function () {
+    forget(); licence = null;
+    scan.classList.add('hidden'); gate.classList.remove('hidden');
+    out.innerHTML = ''; $('key').value = ''; $('unlock').disabled = false;
+  });
+
+  // Gumroad's post-purchase redirect carries the key; a returning buyer has it stored.
+  (async function boot() {
+    var q = new URLSearchParams(location.search);
+    var fromUrl = q.get('license_key') || q.get('key');
+    var stored = recall();
+    var key = fromUrl || (stored && stored.key);
+    if (!key) return;
+    $('key').value = key;
+    gateStatus.textContent = 'Checking licence…';
+    try {
+      var r = await verify(key);
+      if (r) { licence = r; remember({ key: r.key, id: r.product.id }); gateStatus.textContent = ''; showScan(); return; }
+      if (stored && !fromUrl) forget();
+      gateStatus.textContent = '';
+    } catch (e) { gateStatus.textContent = ''; }
+  })();
+})();
+</script>
+</body>
+</html>
