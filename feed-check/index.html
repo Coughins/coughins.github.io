@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shopify Feed Checker — find dead product pages on any store</title>
+<meta name="description" content="Paste any Shopify store URL and get an instant product-feed audit: how many published products are completely out of stock, missing images, priced at zero or missing SKUs. Runs in your browser. Free, no signup.">
+<link rel="canonical" href="https://coughins.github.io/feed-check/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Shopify Feed Checker">
+<meta property="og:description" content="Paste any Shopify store URL and get an instant product-feed audit. Runs entirely in your browser. Free, no signup.">
+<meta property="og:url" content="https://coughins.github.io/feed-check/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Shopify Feed Checker">
+<meta name="twitter:description" content="Instant product-feed audit for any Shopify store. Runs in your browser. Free, no signup.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;450;600&display=swap">
+<style>
+  :root{
+    --ground:#f3f4f7; --surface:#ffffff; --ink:#10151c; --dim:#5c6675;
+    --line:#dde1e8; --line-strong:#c6ccd6; --accent:#1b3a6b;
+    --crit:#a82a1c; --warn:#8a5a06; --ok:#186b4a;
+    --crit-soft:#e9c4bd; --warn-soft:#e8d5ab; --ok-soft:#b9dccb;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --cond:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0e1116; --surface:#161a20; --ink:#e7eaef; --dim:#939ba7;
+      --line:#252b34; --line-strong:#39414c; --accent:#83a9e6;
+      --crit:#e07a63; --warn:#d3a445; --ok:#59bd8b;
+      --crit-soft:#4a2a24; --warn-soft:#463719; --ok-soft:#1e3d31;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0e1116; --surface:#161a20; --ink:#e7eaef; --dim:#939ba7;
+    --line:#252b34; --line-strong:#39414c; --accent:#83a9e6;
+    --crit:#e07a63; --warn:#d3a445; --ok:#59bd8b;
+    --crit-soft:#4a2a24; --warn-soft:#463719; --ok-soft:#1e3d31;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+       font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+  .sheet{max-width:900px;margin:0 auto;padding:0 24px 96px}
+  .measure{max-width:62ch}
+  a{color:var(--accent);text-underline-offset:2px}
+  .label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+         text-transform:uppercase;color:var(--dim)}
+
+  header{padding:52px 0 26px}
+  h1{font-family:var(--cond);font-weight:700;font-size:clamp(36px,6.5vw,56px);line-height:1;
+     letter-spacing:-.02em;margin:10px 0 0;text-wrap:balance}
+  .thesis{font-size:18.5px;line-height:1.5;margin:16px 0 0;max-width:56ch}
+
+  /* Form */
+  form{display:flex;gap:10px;margin:26px 0 10px;flex-wrap:wrap}
+  input[type=url],input[type=text]{
+    flex:1 1 300px;min-width:0;font-family:var(--mono);font-size:15px;padding:14px 16px;
+    border:1px solid var(--line-strong);border-radius:4px;background:var(--surface);
+    color:var(--ink)}
+  input::placeholder{color:var(--dim)}
+  input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  button{font-family:var(--sans);font-weight:600;font-size:15px;padding:14px 26px;border:0;
+         border-radius:4px;background:var(--ink);color:var(--ground);cursor:pointer}
+  button:hover{opacity:.88}
+  button[disabled]{opacity:.5;cursor:default}
+  .hint{font-size:13.5px;color:var(--dim);margin:0 0 4px}
+  .examples{font-size:13px;color:var(--dim);margin:10px 0 0}
+  .examples button{background:none;border:0;padding:0;font-family:var(--mono);font-size:13px;
+                   color:var(--accent);cursor:pointer;font-weight:400;text-decoration:underline;
+                   text-underline-offset:2px}
+  .examples button:hover{opacity:1;text-decoration:none}
+
+  #status{font-family:var(--mono);font-size:13px;color:var(--dim);min-height:22px;margin:14px 0 0}
+  .err{border-left:3px solid var(--crit);background:var(--surface);padding:16px 18px;
+       border-radius:0 4px 4px 0;margin:18px 0 0}
+  .err b{display:block;font-family:var(--cond);font-size:18px;margin-bottom:4px}
+  .err p{margin:0;font-size:14.5px;color:var(--dim)}
+
+  /* Results */
+  #out{margin-top:34px}
+  .resulthead{border-top:2px solid var(--ink);padding-top:22px}
+  .resulthead h2{font-family:var(--cond);font-weight:700;font-size:30px;margin:6px 0 0;
+                 letter-spacing:-.02em;word-break:break-all}
+  .figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+           border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:20px}
+  .fig{padding:20px 18px;border-right:1px solid var(--line)}
+  .fig:last-child{border-right:0}
+  .fig b{display:block;font-family:var(--cond);font-weight:700;font-size:40px;line-height:1;
+         letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .fig small{display:block;font-size:12.5px;color:var(--dim);margin-top:7px;line-height:1.35}
+  .fig.crit b{color:var(--crit)} .fig.warn b{color:var(--warn)} .fig.ok b{color:var(--ok)}
+
+  .issue{background:var(--surface);border:1px solid var(--line);border-radius:4px;
+         padding:17px 19px;margin-bottom:11px}
+  .issue.crit{border-left:3px solid var(--crit)}
+  .issue.warn{border-left:3px solid var(--warn)}
+  .issue.ok{opacity:.62}
+  .ihead{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .ihead h3{font-size:15.5px;margin:0;font-weight:600;letter-spacing:-.01em}
+  .cnt{font-family:var(--mono);font-size:14px;font-weight:600;white-space:nowrap}
+  .cnt .sh{color:var(--dim);font-weight:400}
+  .why{color:var(--dim);font-size:13.5px;margin:7px 0 0}
+  .items{margin:11px 0 0;padding-left:18px;font-size:13.5px}
+  .items li{margin:3px 0}
+  .items a{color:inherit;text-decoration:none;border-bottom:1px solid var(--line)}
+  .items a:hover{border-color:currentColor}
+  .dim{color:var(--dim)}
+
+  /* Offer */
+  .cta{background:var(--ink);color:var(--ground);border-radius:5px;padding:28px 26px;margin:34px 0 0}
+  .cta h3{font-family:var(--cond);font-weight:700;font-size:24px;margin:0 0 8px;letter-spacing:-.01em}
+  .cta p{margin:0 0 14px;font-size:15px;opacity:.85;max-width:58ch}
+  .cta a{color:var(--ground);font-weight:600}
+  .tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:18px}
+  .tier{border:1px solid rgba(255,255,255,.22);border-radius:4px;padding:15px 16px}
+  .tier .nm{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+            opacity:.7}
+  .tier .pr{font-family:var(--cond);font-weight:700;font-size:27px;line-height:1.15;margin-top:3px}
+  .tier .ds{font-size:13px;opacity:.8;margin-top:5px;line-height:1.45}
+
+  h2.sec{font-family:var(--cond);font-weight:700;font-size:25px;margin:48px 0 4px;letter-spacing:-.01em}
+  footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);
+         font-size:13px;color:var(--dim);max-width:70ch}
+  code{font-family:var(--mono);font-size:.88em}
+  .spin{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--accent);
+        margin-right:7px;animation:p 1s ease-in-out infinite}
+  @keyframes p{0%,100%{opacity:.25}50%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.spin{animation:none;opacity:.8}}
+  @media (max-width:560px){.fig{border-right:0;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<header>
+  <span class="label">Free · runs in your browser · no signup</span>
+  <h1>Shopify Feed Checker</h1>
+  <p class="thesis">Paste any Shopify store URL. You get back every published product that is completely out of stock but still live — plus ten other things that quietly break shopping feeds.</p>
+
+  <form id="f">
+    <input id="u" type="text" inputmode="url" autocomplete="url" spellcheck="false"
+           placeholder="yourstore.com" aria-label="Shopify store URL" required>
+    <button id="go" type="submit">Scan store</button>
+  </form>
+  <p class="hint">Nothing is uploaded and nothing is stored. Your browser reads the store's public product feed directly.</p>
+  <p class="examples">Try one:
+    <button type="button" data-s="allbirds.com">allbirds.com</button> ·
+    <button type="button" data-s="gymshark.com">gymshark.com</button> ·
+    <button type="button" data-s="misen.com">misen.com</button>
+  </p>
+  <div id="status"></div>
+</header>
+
+<div id="out"></div>
+
+<h2 class="sec">How this works</h2>
+<div class="measure">
+<p>Every Shopify store publishes its catalogue at <code>/products.json</code>. It needs no login and no API key, and it is the same file Google Shopping, Meta catalogues and marketplace importers already read. This page asks your browser to fetch that file and counts what is in it.</p>
+<p>There is no server involved. Nothing about the store you check, or about you, reaches anyone — including us. That also means we cannot see your results, so if you want the full CSVs you have to ask.</p>
+</div>
+
+<h2 class="sec">What "dead" means, and why it costs money</h2>
+<div class="measure">
+<p>A published product where <em>every</em> variant reports unavailable is still a live, indexed page. It keeps absorbing crawl budget, it keeps taking ad clicks, and it keeps being submitted to shopping feeds — where out-of-stock items are typically suppressed or disapproved rather than sold. A shopper who lands on one from search hits a dead end.</p>
+<p>Nothing inside Shopify surfaces the total, which is why it accumulates quietly on otherwise well-run stores. In a scan of 34 well-known DTC brands, 32 were carrying at least one and 11 had more than a fifth of their catalogue in that state.</p>
+</div>
+
+<footer>
+  <p><strong>Limits.</strong> This reads a maximum of 2,500 products per store and pauses between pages. Availability is what the feed reports right now, and a store can list an out-of-stock product deliberately — for a pre-order, a seasonal return, or a discontinued line kept for its SEO. Treat the output as a list of things worth checking, not a list of mistakes.</p>
+  <p><strong>If a store will not scan</strong>, it is almost always because it is not Shopify, or the merchant has turned the public feed off. Neither is worked around here.</p>
+  <p>Seehuetter Commerce Data · <a href="mailto:seehuetterdominik@gmail.com">seehuetterdominik@gmail.com</a></p>
+</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var PAGE = 250, MAX_PAGES = 10, DELAY = 250;
+  var f = document.getElementById('f'), u = document.getElementById('u'),
+      go = document.getElementById('go'), st = document.getElementById('status'),
+      out = document.getElementById('out');
+
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  };
+  var nf = function (x) { return Number(x).toLocaleString('en-GB'); };
+  var num = function (v) { var n = parseFloat(v); return isFinite(n) ? n : null; };
+  var pct = function (a, b) { return b ? Math.round((a / b) * 1000) / 10 : 0; };
+  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+
+  function origin(raw) {
+    var v = String(raw).trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+    if (!v) throw new Error('EMPTY');
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(v)) throw new Error('BADHOST');
+    return 'https://' + v;
+  }
+
+  async function load(base, onProgress) {
+    var products = [], seen = {};
+    for (var page = 1; page <= MAX_PAGES; page += 1) {
+      var res;
+      try {
+        res = await fetch(base + '/products.json?limit=' + PAGE + '&page=' + page,
+                          { headers: { accept: 'application/json' } });
+      } catch (e) { throw new Error(products.length ? 'PARTIAL' : 'UNREACHABLE'); }
+      if (res.status === 404) throw new Error(products.length ? 'PARTIAL' : 'NOTFOUND');
+      if (res.status === 430 || res.status === 429) throw new Error(products.length ? 'PARTIAL' : 'THROTTLED');
+      if (!res.ok) throw new Error(products.length ? 'PARTIAL' : 'HTTP' + res.status);
+      var data;
+      try { data = await res.json(); } catch (e) { throw new Error('NOTSHOPIFY'); }
+      if (!data || !Array.isArray(data.products)) throw new Error('NOTSHOPIFY');
+      if (!data.products.length) break;
+      var added = 0;
+      for (var i = 0; i < data.products.length; i += 1) {
+        var p = data.products[i], id = String(p.id);
+        if (seen[id]) continue;
+        seen[id] = 1; products.push(p); added += 1;
+      }
+      onProgress(products.length);
+      if (data.products.length < PAGE || !added) break;
+      if (page < MAX_PAGES) await sleep(DELAY);
+    }
+    if (!products.length) throw new Error('EMPTY_FEED');
+    return products;
+  }
+
+  var PENALTY = {
+    dead: [0.60, 45], noimg: [0.50, 15], zprice: [2.00, 10], partial: [0.10, 10],
+    cbelow: [1.00, 8], nosku: [0.15, 8], zweight: [0.10, 8], stale: [0.08, 6],
+    dupes: [0.50, 5], cequal: [0.10, 5], notype: [0.06, 5]
+  };
+
+  function audit(base, products) {
+    var F = { dead: [], partial: [], noimg: [], nosku: [], zweight: [], cbelow: [],
+              cequal: [], zprice: [], stale: [], notype: [], dupes: [] };
+    var titles = {}, vTotal = 0, vAvail = 0, now = Date.now(), YEAR = 365 * 864e5;
+
+    products.forEach(function (p) {
+      var vs = p.variants || [], imgs = p.images || [];
+      vTotal += vs.length;
+      var av = vs.filter(function (v) { return v.available === true; });
+      vAvail += av.length;
+      var b = { t: p.title, url: base + '/products/' + p.handle };
+
+      if (vs.length && !av.length) F.dead.push(b);
+      else if (vs.length > 1 && av.length < vs.length) {
+        F.partial.push({ t: p.title, url: b.url, x: (vs.length - av.length) + ' of ' + vs.length + ' variants unavailable' });
+      }
+      if (!imgs.length) F.noimg.push(b);
+      if (!p.product_type || !String(p.product_type).trim()) F.notype.push(b);
+      var k = String(p.title || '').trim().toLowerCase();
+      if (k) { titles[k] = titles[k] || []; titles[k].push(b); }
+      var up = p.updated_at ? Date.parse(p.updated_at) : 0;
+      if (up && now - up > YEAR) {
+        F.stale.push({ t: p.title, url: b.url, x: Math.round((now - up) / 864e5) + ' days since last change' });
+      }
+      vs.forEach(function (v) {
+        var pr = num(v.price), cp = num(v.compare_at_price);
+        var lb = v.title && v.title !== 'Default Title' ? p.title + ' — ' + v.title : p.title;
+        var vb = { t: lb, url: b.url };
+        if (!v.sku || !String(v.sku).trim()) F.nosku.push(vb);
+        if (v.requires_shipping !== false && !v.grams) F.zweight.push(vb);
+        if (pr !== null && cp !== null && cp > 0 && cp < pr) F.cbelow.push(vb);
+        else if (pr !== null && cp !== null && cp > 0 && cp === pr) F.cequal.push(vb);
+        if (pr === null || pr === 0) F.zprice.push(vb);
+      });
+    });
+    Object.keys(titles).forEach(function (k) {
+      if (titles[k].length > 1) {
+        F.dupes.push({ t: titles[k][0].t, url: titles[k][0].url, x: titles[k].length + ' pages share this title' });
+      }
+    });
+
+    var P = products.length;
+    var defs = [
+      ['dead', 'Published products with every variant out of stock', P,
+       'These pages stay live and indexed, keep taking ad clicks, and keep being submitted to Google Shopping and Meta catalogues, where out-of-stock items are usually suppressed or disapproved rather than sold.'],
+      ['partial', 'Products with some but not all variants out of stock', P,
+       'The shopper reaches the page, picks a size or colour, and hits a dead end. It is the most common cause of add-to-cart drop-off on a product page.'],
+      ['noimg', 'Products with no image at all', P,
+       'A feed entry without an image is rejected outright by every major shopping channel.'],
+      ['zprice', 'Variants priced at zero', vTotal,
+       'Either a feed error or a genuine giveaway. Both are worth confirming deliberately.'],
+      ['nosku', 'Variants with no SKU', vTotal,
+       'Missing SKUs break inventory reconciliation, 3PL integrations, and most marketplace or ERP importers.'],
+      ['zweight', 'Shippable variants with zero weight', vTotal,
+       'Carrier-calculated shipping and duty estimates silently fall back to defaults, which usually means undercharging for shipping.'],
+      ['cbelow', 'Variants where the compare-at price is below the selling price', vTotal,
+       'A data error. Themes render it as a strike-through that makes the current price look like an increase, and it can trip advertising policies on misleading pricing.'],
+      ['cequal', 'Variants where the compare-at price equals the selling price', vTotal,
+       'A zero-value discount. Many themes still draw the strike-through, so the shopper sees the same number twice. Usually left over from a finished promotion.'],
+      ['notype', 'Products with no product type', P,
+       'Product type drives collection rules, faceted navigation and channel category mapping.'],
+      ['stale', 'Products untouched for over a year', P,
+       'Long-stale entries are usually abandoned SKUs that should be archived rather than published.'],
+      ['dupes', 'Duplicate product titles', P,
+       'Duplicate titles split search relevance between competing pages and confuse channel de-duplication.']
+    ];
+
+    var deductions = 0;
+    var issues = defs.map(function (d) {
+      var id = d[0], items = F[id], share = pct(items.length, d[2]);
+      var w = PENALTY[id], pen = items.length ? Math.min(w[1], share * w[0]) : 0;
+      deductions += pen;
+      var sev = 'ok';
+      if (items.length) {
+        sev = pen >= 12 ? 'crit' : pen >= 3 ? 'warn' : 'ok';
+        if (id === 'noimg' || id === 'zprice') sev = pen >= 6 ? 'crit' : 'warn';
+      }
+      return { id: id, label: d[1], count: items.length, share: share, why: d[3], items: items, sev: sev, pen: pen };
+    });
+
+    return {
+      host: base.replace(/^https:\/\//, ''),
+      products: P, variants: vTotal, availPct: pct(vAvail, vTotal),
+      dead: F.dead.length, deadPct: pct(F.dead.length, P),
+      score: Math.max(0, Math.round(100 - deductions)),
+      issues: issues
+    };
+  }
+
+  function render(r, capped) {
+    var order = { crit: 0, warn: 1, ok: 2 };
+    var sorted = r.issues.slice().sort(function (a, b) {
+      return order[a.sev] - order[b.sev] || b.pen - a.pen;
+    });
+    var sBand = r.score >= 85 ? 'ok' : r.score >= 65 ? 'warn' : 'crit';
+    var dBand = r.deadPct > 20 ? 'crit' : r.dead ? 'warn' : 'ok';
+
+    var html = '<div class="resulthead"><span class="label">Feed audit</span>'
+      + '<h2>' + esc(r.host) + '</h2></div>'
+      + '<div class="figures">'
+      + '<div class="fig ' + sBand + '"><b>' + r.score + '<span class="dim" style="font-size:19px">/100</span></b><small>Feed health score</small></div>'
+      + '<div class="fig ' + dBand + '"><b>' + nf(r.dead) + '</b><small>Fully out of stock (' + r.deadPct + '% of catalogue)</small></div>'
+      + '<div class="fig"><b>' + nf(r.products - r.dead) + '</b><small>Products actually buyable</small></div>'
+      + '<div class="fig"><b>' + r.availPct + '%</b><small>Variants in stock</small></div>'
+      + '</div>';
+
+    if (capped) {
+      html += '<p class="hint" style="margin-top:14px">This store has more than ' + nf(r.products)
+        + ' products. The scan stopped there to stay polite; the full run covers the rest.</p>';
+    }
+
+    sorted.forEach(function (i) {
+      html += '<div class="issue ' + i.sev + '"><div class="ihead"><h3>' + esc(i.label) + '</h3>'
+        + '<span class="cnt">' + nf(i.count) + ' <span class="sh">(' + i.share + '%)</span></span></div>'
+        + '<p class="why">' + esc(i.why) + '</p>';
+      if (i.count) {
+        html += '<ul class="items">';
+        i.items.slice(0, 12).forEach(function (it) {
+          html += '<li><a href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer">'
+            + esc(it.t) + '</a>' + (it.x ? ' <span class="dim">— ' + esc(it.x) + '</span>' : '') + '</li>';
+        });
+        if (i.count > 12) {
+          html += '<li class="dim">…and ' + nf(i.count - 12) + ' more, in the full report.</li>';
+        }
+        html += '</ul>';
+      }
+      html += '</div>';
+    });
+
+    var subject = encodeURIComponent('Full audit for ' + r.host);
+    html += '<div class="cta"><h3>Want the whole list?</h3>'
+      + '<p>This page shows the first twelve of each. The full audit gives you every affected product as a CSV with live links, ordered by what is costing you most — delivered within 24 hours.</p>'
+      + '<div class="tiers">'
+      + '<div class="tier"><div class="nm">Full audit</div><div class="pr">€19</div><div class="ds">Every issue, every product, as CSVs plus a fix order.</div></div>'
+      + '<div class="tier"><div class="nm">Competitive set</div><div class="pr">€39</div><div class="ds">You and up to five rivals: price bands, assortment depth, discount rates.</div></div>'
+      + '<div class="tier"><div class="nm">Watch</div><div class="pr">€19<span style="font-size:14px">/mo</span></div><div class="ds">Weekly re-scan and a diff: what went dead, what came back, what moved price.</div></div>'
+      + '</div>'
+      + '<p style="margin-top:18px;margin-bottom:0">Email <a href="mailto:seehuetterdominik@gmail.com?subject=' + subject + '">seehuetterdominik@gmail.com</a> with your store URL. Say what you want and an invoice follows — nothing is charged before you have seen your score, and you have already seen it.</p>'
+      + '</div>';
+
+    out.innerHTML = html;
+  }
+
+  var MSG = {
+    BADHOST: ['That does not look like a domain', 'Enter the storefront domain on its own, for example <code>allbirds.com</code>.'],
+    EMPTY: ['Enter a store URL', 'Type the storefront domain and scan again.'],
+    UNREACHABLE: ['Could not reach that store', 'The domain may be wrong, or the store blocks direct requests from a browser. Check the spelling and try again.'],
+    NOTFOUND: ['No public product feed there', 'That store either is not on Shopify, or the merchant has turned off the public product feed. Nothing here works around that.'],
+    NOTSHOPIFY: ['That is not a Shopify product feed', 'The address answered, but not with a Shopify catalogue. This checker only reads Shopify storefronts.'],
+    THROTTLED: ['The store asked us to slow down', 'It returned a rate limit. Wait a minute and try again — no attempt is made to get around it.'],
+    EMPTY_FEED: ['The feed is empty', 'The store publishes a product feed but there is nothing in it right now.'],
+    PARTIAL: ['The scan stopped early', 'Part of the catalogue loaded before the store stopped responding. Try again in a moment.']
+  };
+
+  function fail(code) {
+    var m = MSG[code] || ['Something went wrong', 'Try again, or email the store URL and it will be run manually.'];
+    out.innerHTML = '<div class="err"><b>' + m[0] + '</b><p>' + m[1] + '</p></div>';
+  }
+
+  async function run(raw) {
+    out.innerHTML = '';
+    var base;
+    try { base = origin(raw); }
+    catch (e) { st.textContent = ''; fail(e.message); return; }
+
+    go.disabled = true;
+    st.innerHTML = '<span class="spin"></span>Reading ' + esc(base.replace('https://', '')) + '…';
+    try {
+      var products = await load(base, function (count) {
+        st.innerHTML = '<span class="spin"></span>' + nf(count) + ' products read…';
+      });
+      var capped = products.length >= PAGE * MAX_PAGES;
+      st.textContent = 'Read ' + nf(products.length) + ' products.';
+      render(audit(base, products), capped);
+      out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {
+      st.textContent = '';
+      fail(e.message);
+    } finally {
+      go.disabled = false;
+    }
+  }
+
+  f.addEventListener('submit', function (e) { e.preventDefault(); run(u.value); });
+  Array.prototype.forEach.call(document.querySelectorAll('.examples button'), function (b) {
+    b.addEventListener('click', function () { u.value = b.getAttribute('data-s'); run(u.value); });
+  });
+
+  var pre = new URLSearchParams(location.search).get('store');
+  if (pre) { u.value = pre; run(pre); }
+}());
+</script>
+</body>
+</html>

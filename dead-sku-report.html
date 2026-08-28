@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="We read the public product feed of 34 well-known Shopify stores. 2,079 of their 10,107 published products were completely out of stock - still live, still crawlable, still being fed to Google Shopping.">
+<link rel="canonical" href="https://coughins.github.io/dead-sku-report.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Seehuetter Commerce Data">
+<meta property="og:title" content="The Dead SKU Report">
+<meta property="og:description" content="We read the public product feed of 34 well-known Shopify stores. 2,079 of their 10,107 published products were completely out of stock - still live, still crawlable, still being fed to Google Shopping.">
+<meta property="og:url" content="https://coughins.github.io/dead-sku-report.html">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="The Dead SKU Report">
+<meta name="twitter:description" content="We read the public product feed of 34 well-known Shopify stores. 2,079 of their 10,107 published products were completely out of stock - still live, still crawlable, still being fed to Google Shopping.">
+<title>Dead SKU Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;450;600&display=swap">
+<style>
+  :root{
+    --ground:#f3f4f7; --surface:#ffffff; --ink:#10151c; --dim:#5c6675;
+    --line:#dde1e8; --line-strong:#c6ccd6; --accent:#1b3a6b;
+    --crit:#a82a1c; --warn:#8a5a06; --ok:#186b4a;
+    --crit-soft:#e9c4bd; --warn-soft:#e8d5ab; --ok-soft:#b9dccb;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --cond:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0e1116; --surface:#161a20; --ink:#e7eaef; --dim:#939ba7;
+      --line:#252b34; --line-strong:#39414c; --accent:#83a9e6;
+      --crit:#e07a63; --warn:#d3a445; --ok:#59bd8b;
+      --crit-soft:#4a2a24; --warn-soft:#463719; --ok-soft:#1e3d31;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0e1116; --surface:#161a20; --ink:#e7eaef; --dim:#939ba7;
+    --line:#252b34; --line-strong:#39414c; --accent:#83a9e6;
+    --crit:#e07a63; --warn:#d3a445; --ok:#59bd8b;
+    --crit-soft:#4a2a24; --warn-soft:#463719; --ok-soft:#1e3d31;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+       font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+  .sheet{max-width:940px;margin:0 auto;padding:0 24px 96px}
+  .measure{max-width:62ch}
+  a{color:var(--accent);text-underline-offset:2px}
+  .label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+
+  /* Masthead */
+  header{padding:56px 0 28px;border-bottom:2px solid var(--ink)}
+  h1{font-family:var(--cond);font-weight:700;font-size:clamp(38px,7vw,62px);line-height:.98;
+     letter-spacing:-.02em;margin:12px 0 0;text-wrap:balance}
+  .thesis{font-size:19px;line-height:1.5;margin:18px 0 0;max-width:56ch;color:var(--ink)}
+  .stamp{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:22px}
+  .stamp span{font-family:var(--mono);font-size:12px;color:var(--dim)}
+
+  /* Figures */
+  .figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));
+           border-bottom:1px solid var(--line)}
+  .fig{padding:24px 20px 22px;border-right:1px solid var(--line)}
+  .fig:last-child{border-right:0}
+  .fig b{display:block;font-family:var(--cond);font-weight:700;font-size:44px;line-height:1;
+         letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .fig small{display:block;font-size:13px;color:var(--dim);margin-top:8px;line-height:1.35}
+  .fig.crit b{color:var(--crit)}
+
+  h2{font-family:var(--cond);font-weight:700;font-size:27px;letter-spacing:-.01em;
+     margin:52px 0 4px;text-wrap:balance}
+  h2 + .label{display:block;margin-bottom:16px}
+  p{margin:0 0 15px}
+  .dim{color:var(--dim)}
+
+  /* Table */
+  .scroll{overflow-x:auto;margin:22px 0 0;border-top:1px solid var(--line-strong)}
+  table{border-collapse:collapse;width:100%;min-width:620px;font-size:14px}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+     color:var(--dim);text-align:right;font-weight:500;padding:12px 12px 11px;
+     border-bottom:1px solid var(--line-strong);white-space:nowrap}
+  th:first-child{text-align:left}
+  td{padding:9px 12px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+  td.num{text-align:right;white-space:nowrap}
+  tbody tr:hover{background:var(--surface)}
+  .store{font-family:var(--mono);font-size:13px}
+  .score{display:inline-block;min-width:34px;text-align:center;padding:2px 7px;border-radius:3px;
+         font-family:var(--mono);font-weight:600;font-size:12.5px}
+  .score.ok{background:var(--ok-soft);color:var(--ok)}
+  .score.warn{background:var(--warn-soft);color:var(--warn)}
+  .score.crit{background:var(--crit-soft);color:var(--crit)}
+  .barcell{display:flex;align-items:center;gap:10px;min-width:150px}
+  .bar{flex:1;height:7px;background:var(--line);border-radius:1px;overflow:hidden}
+  .bar span{display:block;height:100%}
+  .bar .crit{background:var(--crit)} .bar .warn{background:var(--warn)} .bar .ok{background:var(--ok)}
+  .pct{font-family:var(--mono);font-size:12px;min-width:46px;text-align:right;color:var(--dim)}
+
+  /* Offer */
+  .offer{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:24px 0 0}
+  .tier{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:22px 20px;
+        display:flex;flex-direction:column;gap:10px}
+  .tier.lead{background:var(--ink);border-color:var(--ink);color:var(--ground)}
+  .tier.lead ul{color:var(--ground);opacity:.82}
+  .tier.lead li strong{color:var(--ground)}
+  .tier.lead .price small{color:var(--ground);opacity:.7}
+  .tier .tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+             color:var(--dim);margin:0}
+  .tier.lead .tag{color:var(--ground);opacity:.75}
+  .tier h3{font-family:var(--cond);font-weight:700;font-size:19px;margin:0;letter-spacing:-.01em}
+  .price{font-family:var(--cond);font-weight:700;font-size:34px;line-height:1;letter-spacing:-.02em;
+         font-variant-numeric:tabular-nums}
+  .price small{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--dim);letter-spacing:0}
+  .tier ul{margin:0;padding-left:17px;font-size:14px;line-height:1.55;color:var(--dim)}
+  .tier li{margin-bottom:4px}
+  .tier li strong{color:var(--ink);font-weight:600}
+
+  .note{border-left:2px solid var(--line-strong);padding:2px 0 2px 18px;margin:22px 0;
+        font-size:14.5px;color:var(--dim);max-width:62ch}
+  .note strong{color:var(--ink)}
+  footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--line);
+         font-size:13px;color:var(--dim);max-width:70ch}
+  code{font-family:var(--mono);font-size:.88em}
+  @media (max-width:560px){
+    .fig{border-right:0;border-bottom:1px solid var(--line)}
+    header{padding-top:36px}
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+<header>
+  <span class="label">Public product-feed benchmark · 2026-08-28</span>
+  <h1>The Dead SKU Report</h1>
+  <p class="thesis">We read the public product feed of 34 well-known Shopify stores. 2,079 of their 10,107 published products were completely out of stock — still live, still crawlable, still being fed to Google Shopping.</p>
+  <div class="stamp">
+    <span>34 stores</span><span>10,107 products</span><span>55,320 variants</span><span>Read from <code>/products.json</code></span>
+  </div>
+</header>
+
+<div class="figures">
+  <div class="fig crit"><b>2,079</b><small>Published products with every variant out of stock</small></div>
+  <div class="fig"><b>32<span class="dim" style="font-size:22px">/34</span></b><small>Stores carrying at least one</small></div>
+  <div class="fig"><b>11<span class="dim" style="font-size:22px">/34</span></b><small>Stores where over 20% of the catalogue is dead</small></div>
+  <div class="fig"><b>10.2%</b><small>Median share of dead products per store</small></div>
+</div>
+
+<h2>What we found</h2>
+<span class="label">The finding</span>
+<div class="measure">
+<p>A product whose every variant is unavailable does not quietly disappear. Its page stays live and indexed, it keeps absorbing crawl budget, it keeps receiving ad clicks, and it keeps being submitted to Google Shopping and Meta catalogues — where it is suppressed or disapproved rather than sold. Shoppers who land on it bounce.</p>
+<p>This is not a rare failure. 32 of the 34 stores we scanned were carrying dead products, and 11 of them were carrying enough to affect a meaningful share of their catalogue. The worst in the sample, <strong>intelligentsia.com</strong>, had 234 of 331 published products (70.7%) with nothing buyable on the page. The median store scored 80 out of 100.</p>
+<p>These are competent, well-run brands. That is the point: the problem accumulates silently because nothing in Shopify surfaces it, and the public feed is the one place it becomes measurable from outside.</p>
+</div>
+
+<h2>Every store we scanned</h2>
+<span class="label">Ranked worst score first · lower is worse</span>
+<div class="scroll">
+<table>
+  <thead><tr>
+    <th>Store</th><th>Score</th><th>Products</th><th>Variants</th><th>Dead</th><th style="text-align:left">Share of catalogue dead</th>
+  </tr></thead>
+  <tbody>
+<tr>
+  <td class="store">intelligentsia.com</td>
+  <td class="num"><span class="score crit">48</span></td>
+  <td class="num">331</td>
+  <td class="num">500</td>
+  <td class="num">234</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:98.19444444444446%" class="crit"></span></div>
+    <span class="pct">70.7%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">counterculturecoffee.com</td>
+  <td class="num"><span class="score crit">51</span></td>
+  <td class="num">173</td>
+  <td class="num">284</td>
+  <td class="num">118</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:94.72222222222223%" class="crit"></span></div>
+    <span class="pct">68.2%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">athleticbrewing.com</td>
+  <td class="num"><span class="score crit">54</span></td>
+  <td class="num">260</td>
+  <td class="num">419</td>
+  <td class="num">161</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:85.97222222222221%" class="crit"></span></div>
+    <span class="pct">61.9%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">allbirds.com</td>
+  <td class="num"><span class="score crit">54</span></td>
+  <td class="num">293</td>
+  <td class="num">2,855</td>
+  <td class="num">211</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:100%" class="crit"></span></div>
+    <span class="pct">72%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">onyxcoffeelab.com</td>
+  <td class="num"><span class="score crit">60</span></td>
+  <td class="num">248</td>
+  <td class="num">623</td>
+  <td class="num">95</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:53.19444444444444%" class="crit"></span></div>
+    <span class="pct">38.3%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">peets.com</td>
+  <td class="num"><span class="score crit">62</span></td>
+  <td class="num">310</td>
+  <td class="num">1,150</td>
+  <td class="num">79</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:35.41666666666667%" class="crit"></span></div>
+    <span class="pct">25.5%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">greatjonesgoods.com</td>
+  <td class="num"><span class="score warn">72</span></td>
+  <td class="num">68</td>
+  <td class="num">354</td>
+  <td class="num">13</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:26.52777777777778%" class="warn"></span></div>
+    <span class="pct">19.1%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">hedleyandbennett.com</td>
+  <td class="num"><span class="score warn">72</span></td>
+  <td class="num">928</td>
+  <td class="num">1,515</td>
+  <td class="num">413</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:61.80555555555556%" class="crit"></span></div>
+    <span class="pct">44.5%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">parachutehome.com</td>
+  <td class="num"><span class="score warn">73</span></td>
+  <td class="num">1,578</td>
+  <td class="num">4,450</td>
+  <td class="num">338</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:29.72222222222222%" class="crit"></span></div>
+    <span class="pct">21.4%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">kosas.com</td>
+  <td class="num"><span class="score warn">74</span></td>
+  <td class="num">86</td>
+  <td class="num">330</td>
+  <td class="num">6</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:9.722222222222223%" class="warn"></span></div>
+    <span class="pct">7%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">chubbiesshorts.com</td>
+  <td class="num"><span class="score warn">75</span></td>
+  <td class="num">1,605</td>
+  <td class="num">9,670</td>
+  <td class="num">45</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:3.888888888888889%" class="ok"></span></div>
+    <span class="pct">2.8%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">ridgewallet.com</td>
+  <td class="num"><span class="score warn">77</span></td>
+  <td class="num">146</td>
+  <td class="num">198</td>
+  <td class="num">44</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:41.80555555555556%" class="crit"></span></div>
+    <span class="pct">30.1%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">brooklinen.com</td>
+  <td class="num"><span class="score warn">77</span></td>
+  <td class="num">468</td>
+  <td class="num">6,159</td>
+  <td class="num">18</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:5.277777777777778%" class="ok"></span></div>
+    <span class="pct">3.8%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">floydhome.com</td>
+  <td class="num"><span class="score warn">77</span></td>
+  <td class="num">172</td>
+  <td class="num">2,887</td>
+  <td class="num">7</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:5.694444444444444%" class="ok"></span></div>
+    <span class="pct">4.1%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">materialkitchen.com</td>
+  <td class="num"><span class="score warn">77</span></td>
+  <td class="num">58</td>
+  <td class="num">171</td>
+  <td class="num">9</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:21.52777777777778%" class="warn"></span></div>
+    <span class="pct">15.5%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">stumptowncoffee.com</td>
+  <td class="num"><span class="score warn">79</span></td>
+  <td class="num">101</td>
+  <td class="num">138</td>
+  <td class="num">31</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:42.638888888888886%" class="crit"></span></div>
+    <span class="pct">30.7%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">drsquatch.com</td>
+  <td class="num"><span class="score warn">80</span></td>
+  <td class="num">548</td>
+  <td class="num">613</td>
+  <td class="num">56</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:14.166666666666666%" class="warn"></span></div>
+    <span class="pct">10.2%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">wildone.com</td>
+  <td class="num"><span class="score warn">80</span></td>
+  <td class="num">57</td>
+  <td class="num">329</td>
+  <td class="num">16</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:39.02777777777778%" class="crit"></span></div>
+    <span class="pct">28.1%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">magicspoon.com</td>
+  <td class="num"><span class="score warn">83</span></td>
+  <td class="num">241</td>
+  <td class="num">342</td>
+  <td class="num">25</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:14.444444444444446%" class="warn"></span></div>
+    <span class="pct">10.4%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">tenthousand.cc</td>
+  <td class="num"><span class="score warn">84</span></td>
+  <td class="num">123</td>
+  <td class="num">5,727</td>
+  <td class="num">0</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:1.2%" class="ok"></span></div>
+    <span class="pct">0%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">starface.world</td>
+  <td class="num"><span class="score warn">84</span></td>
+  <td class="num">51</td>
+  <td class="num">56</td>
+  <td class="num">1</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:2.7777777777777777%" class="ok"></span></div>
+    <span class="pct">2%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">rothys.com</td>
+  <td class="num"><span class="score ok">85</span></td>
+  <td class="num">710</td>
+  <td class="num">12,385</td>
+  <td class="num">109</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:21.38888888888889%" class="warn"></span></div>
+    <span class="pct">15.4%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">nativecos.com</td>
+  <td class="num"><span class="score ok">86</span></td>
+  <td class="num">97</td>
+  <td class="num">523</td>
+  <td class="num">4</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:5.694444444444444%" class="ok"></span></div>
+    <span class="pct">4.1%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">glossier.com</td>
+  <td class="num"><span class="score ok">86</span></td>
+  <td class="num">113</td>
+  <td class="num">356</td>
+  <td class="num">1</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:1.25%" class="ok"></span></div>
+    <span class="pct">0.9%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">maxbone.com</td>
+  <td class="num"><span class="score ok">88</span></td>
+  <td class="num">100</td>
+  <td class="num">567</td>
+  <td class="num">6</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:8.333333333333332%" class="warn"></span></div>
+    <span class="pct">6%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">lolavie.com</td>
+  <td class="num"><span class="score ok">88</span></td>
+  <td class="num">44</td>
+  <td class="num">63</td>
+  <td class="num">1</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:3.194444444444444%" class="ok"></span></div>
+    <span class="pct">2.3%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">liquid-iv.com</td>
+  <td class="num"><span class="score ok">89</span></td>
+  <td class="num">72</td>
+  <td class="num">76</td>
+  <td class="num">1</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:1.9444444444444444%" class="ok"></span></div>
+    <span class="pct">1.4%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">functionofbeauty.com</td>
+  <td class="num"><span class="score ok">89</span></td>
+  <td class="num">39</td>
+  <td class="num">199</td>
+  <td class="num">0</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:1.2%" class="ok"></span></div>
+    <span class="pct">0%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">beardbrand.com</td>
+  <td class="num"><span class="score ok">90</span></td>
+  <td class="num">74</td>
+  <td class="num">111</td>
+  <td class="num">9</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:16.944444444444443%" class="warn"></span></div>
+    <span class="pct">12.2%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">hydrojug.com</td>
+  <td class="num"><span class="score ok">92</span></td>
+  <td class="num">466</td>
+  <td class="num">757</td>
+  <td class="num">6</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:1.8055555555555558%" class="ok"></span></div>
+    <span class="pct">1.3%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">lacolombe.com</td>
+  <td class="num"><span class="score ok">93</span></td>
+  <td class="num">59</td>
+  <td class="num">127</td>
+  <td class="num">6</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:14.166666666666666%" class="warn"></span></div>
+    <span class="pct">10.2%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">klatchcoffee.com</td>
+  <td class="num"><span class="score ok">95</span></td>
+  <td class="num">91</td>
+  <td class="num">620</td>
+  <td class="num">5</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:7.638888888888889%" class="warn"></span></div>
+    <span class="pct">5.5%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">deathwishcoffee.com</td>
+  <td class="num"><span class="score ok">97</span></td>
+  <td class="num">148</td>
+  <td class="num">425</td>
+  <td class="num">3</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:2.7777777777777777%" class="ok"></span></div>
+    <span class="pct">2%</span>
+  </td>
+</tr>
+<tr>
+  <td class="store">misen.com</td>
+  <td class="num"><span class="score ok">98</span></td>
+  <td class="num">249</td>
+  <td class="num">341</td>
+  <td class="num">8</td>
+  <td class="barcell">
+    <div class="bar"><span style="width:4.444444444444445%" class="ok"></span></div>
+    <span class="pct">3.2%</span>
+  </td>
+</tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note"><strong>This table is not a criticism of these brands.</strong> Every figure is a single snapshot of a public feed, and a store can list an out-of-stock product deliberately — for a pre-order, a seasonal return or a discontinued line kept for SEO. It is published to show how ordinary the pattern is. Any brand listed here can have their row removed on request, and can have their full audit for free.</div>
+
+<h2>What the audit checks</h2>
+<span class="label">Across the 34-store sample</span>
+<div class="scroll">
+<table>
+  <thead><tr><th>Check</th><th>Stores affected</th><th>Items found</th></tr></thead>
+  <tbody>
+<tr>
+  <td>Published products with every variant out of stock</td>
+  <td class="num">32<span class="dim">/34</span></td>
+  <td class="num">2,079</td>
+</tr>
+<tr>
+  <td>Shippable variants with zero weight</td>
+  <td class="num">29<span class="dim">/34</span></td>
+  <td class="num">14,514</td>
+</tr>
+<tr>
+  <td>Products with some but not all variants out of stock</td>
+  <td class="num">28<span class="dim">/34</span></td>
+  <td class="num">1,977</td>
+</tr>
+<tr>
+  <td>Products with no product type</td>
+  <td class="num">27<span class="dim">/34</span></td>
+  <td class="num">2,208</td>
+</tr>
+<tr>
+  <td>Variants with no SKU</td>
+  <td class="num">26<span class="dim">/34</span></td>
+  <td class="num">4,539</td>
+</tr>
+<tr>
+  <td>Variants priced at zero</td>
+  <td class="num">20<span class="dim">/34</span></td>
+  <td class="num">906</td>
+</tr>
+<tr>
+  <td>Variants where the compare-at price equals the selling price</td>
+  <td class="num">14<span class="dim">/34</span></td>
+  <td class="num">5,070</td>
+</tr>
+<tr>
+  <td>Products with no image at all</td>
+  <td class="num">13<span class="dim">/34</span></td>
+  <td class="num">179</td>
+</tr>
+<tr>
+  <td>Duplicate product titles</td>
+  <td class="num">12<span class="dim">/34</span></td>
+  <td class="num">150</td>
+</tr>
+<tr>
+  <td>Variants where the compare-at price is lower than the selling price</td>
+  <td class="num">7<span class="dim">/34</span></td>
+  <td class="num">74</td>
+</tr>
+  </tbody>
+</table>
+</div>
+
+<h2>Get this for your own store</h2>
+<span class="label">Delivered within 24 hours</span>
+<div class="offer">
+  <div class="tier lead">
+    <p class="tag">Start here</p>
+    <h3>Free scan</h3>
+    <div class="price">€0</div>
+    <ul>
+      <li>Your <strong>feed health score</strong> and dead-product count</li>
+      <li>The <strong>first 25 dead products</strong>, with links</li>
+      <li>No account, no tracking pixel, no call</li>
+    </ul>
+  </div>
+  <div class="tier">
+    <h3>Full audit</h3>
+    <div class="price">€19 <small>one-off</small></div>
+    <ul>
+      <li><strong>Every</strong> dead product, not the first 25</li>
+      <li>All 10 checks, each as a <strong>CSV with product URLs</strong></li>
+      <li>A fix list ordered by what costs you most</li>
+    </ul>
+  </div>
+  <div class="tier">
+    <h3>Competitive set</h3>
+    <div class="price">€39 <small>one-off</small></div>
+    <ul>
+      <li>Your store <strong>and up to five competitors</strong></li>
+      <li>Price bands, assortment depth and discount rates side by side</li>
+      <li>Where your range is thin and where theirs is</li>
+    </ul>
+  </div>
+  <div class="tier">
+    <h3>Watch</h3>
+    <div class="price">€19 <small>per month</small></div>
+    <ul>
+      <li>Weekly re-scan of your feed</li>
+      <li>A <strong>diff</strong>: what went dead, what came back, what changed price</li>
+      <li>Cancel any time, no contract</li>
+    </ul>
+  </div>
+</div>
+
+<h2>Check your own store, right now</h2>
+<span class="label">Free · instant · no signup</span>
+<div class="measure">
+<p><a href="https://coughins.github.io/feed-check/"><strong>Run the checker on any Shopify store &rarr;</strong></a></p>
+<p>It runs entirely inside your own browser. Nothing is uploaded, nothing is stored, and no account is involved — which also means we never see your result, so if you want the full CSVs you have to ask for them. The free check is genuinely unlimited: it costs a couple of seconds of your own computer, so there is nothing to ration.</p>
+<p>If the result is bad enough that you want every affected product rather than the first twelve, plus the order to fix them in, that is the €19 audit — and you will have seen your score before deciding. Or just send a store URL to <a href="mailto:seehuetterdominik@gmail.com?subject=Feed%20audit">seehuetterdominik@gmail.com</a>.</p>
+</div>
+
+<h2>How it works</h2>
+<div class="measure">
+<p>Send a store URL. Everything is read from that store's own public <code>/products.json</code> feed — the same file Google Shopping, Meta catalogues and every marketplace importer already read. There is no login, no app install, no code on your site, and nothing touching order or customer data. <code>robots.txt</code> is checked and respected before the first request, and a store that disallows it is skipped rather than worked around.</p>
+<p>A scan takes a few seconds. The audit comes back as a single self-contained HTML file you can open or forward, plus the CSVs.</p>
+</div>
+
+<footer>
+  <p><strong>Method.</strong> Each store's public product feed was paginated at 250 products per request with a delay between pages, capped at 2,500 products per store. "Dead" means a published product where every variant reports <code>available: false</code>. Availability is what the feed reports at scan time. Scores weight each check by the share of the catalogue it affects and cap each check's penalty, so no single issue can alone zero a score.</p>
+  <p><strong>Limits.</strong> Snapshots, not trends — a store scanned on a restock day looks different. The audit reads feed structure, not merchandising intent, so it produces a list of things worth checking rather than a list of mistakes. Stores that block or do not expose the public feed were excluded, not penalised.</p>
+  <p>Generated 2026-08-28 · Seehuetter Commerce Data</p>
+</footer>
+</div>
+</body>
+</html>
