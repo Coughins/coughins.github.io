@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shopify Feed Checker — find dead product pages on any store</title>
-<meta name="description" content="Paste any Shopify store URL and get an instant product-feed audit: how many published products are completely out of stock, missing images, priced at zero or missing SKUs. Runs in your browser. Free, no signup.">
+<meta name="description" content="Find out-of-stock products still live on any Shopify store, and why they get disapproved in Google Merchant Center. Reads the public products.json feed in your browser. Free, no signup, no app install.">
 <link rel="canonical" href="https://coughins.github.io/feed-check/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Shopify Feed Checker">
@@ -131,6 +131,8 @@
   .cta .alt a{color:var(--ground)}
 
   h2.sec{font-family:var(--cond);font-weight:700;font-size:25px;margin:48px 0 4px;letter-spacing:-.01em}
+  .measure h3{font-family:var(--cond);font-weight:700;font-size:17px;margin:26px 0 4px;
+              letter-spacing:-.01em;color:var(--ink)}
   footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);
          font-size:13px;color:var(--dim);max-width:70ch}
   code{font-family:var(--mono);font-size:.88em}
@@ -194,6 +196,25 @@
 <div class="measure">
 <p>A published product where <em>every</em> variant reports unavailable is still a live, indexed page. It keeps absorbing crawl budget, it keeps taking ad clicks, and it keeps being submitted to shopping feeds — where out-of-stock items are typically suppressed or disapproved rather than sold. A shopper who lands on one from search hits a dead end.</p>
 <p>Nothing inside Shopify surfaces the total, which is why it accumulates quietly on otherwise well-run stores. In a scan of 34 well-known DTC brands, 32 were carrying at least one and 11 had more than a fifth of their catalogue in that state.</p>
+</div>
+
+<h2 class="sec">What to actually do about it</h2>
+<div class="measure">
+<p>None of this needs an app or a developer, and the fix depends entirely on <em>why</em> a product is dead. Getting that wrong is worse than leaving it alone.</p>
+
+<h3>Discontinued for good</h3>
+<p>Archiving removes it from the storefront but also throws away every backlink and every bit of ranking that page earned. If it had traffic, set a <strong>URL redirect</strong> to the nearest replacement or its collection first, then archive. Deleting outright with no redirect is the one genuinely destructive option — it turns real traffic into 404s.</p>
+
+<h3>Coming back into stock</h3>
+<p>Keep it published. The problem is not the page, it is what the shopping feed says about it. Make sure availability is reported honestly, and if you take pre-orders, <em>continue selling when out of stock</em> keeps the product buyable instead of dead. What you should not do is leave it reporting unavailable for months and hope.</p>
+
+<h3>Never coming back, no traffic</h3>
+<p>Archive it. This is the bulk of most dead lists — seasonal lines, one-off collabs, old colourways. Shopify lets you filter and bulk-archive, so the work is minutes once you know which ones.</p>
+
+<h3>The other checks</h3>
+<p><strong>Zero prices</strong> and <strong>products with no image</strong> should be fixed or unpublished today; both are rejected outright by shopping channels. <strong>Compare-at prices equal to the price</strong> are almost always the residue of a finished promotion — clear the field in a bulk edit and the phantom strike-through goes away. <strong>Zero-weight shippable variants</strong> quietly break carrier-calculated rates, so you undercharge for shipping on every order until they are set. <strong>Missing SKUs</strong> are best fixed with a CSV export, filled in, and re-imported.</p>
+
+<p>The knowledge above is the whole method and it is free. What takes the time is finding out <em>which</em> of your products are in which category across a few thousand SKUs — which is the part worth paying for.</p>
 </div>
 
 <footer>
