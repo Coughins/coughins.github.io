@@ -129,7 +129,26 @@
         margin-right:7px;animation:p 1s ease-in-out infinite}
   @keyframes p{0%,100%{opacity:.25}50%{opacity:1}}
   @media (prefers-reduced-motion:reduce){.spin{animation:none;opacity:.8}}
-  @media (max-width:560px){.fig{border-right:0;border-bottom:1px solid var(--line)}}
+  @media (max-width:560px){
+    .sheet{padding:0 16px 72px}
+    header{padding:34px 0 20px}
+    .fig{padding:16px 14px}
+    .fig b{font-size:31px}
+    .fig small{font-size:12px}
+    .figures{grid-template-columns:repeat(2,1fr)}
+    .fig:nth-child(odd){border-right:1px solid var(--line)}
+    .fig:nth-child(even){border-right:0}
+    .fig:nth-child(-n+2){border-bottom:1px solid var(--line)}
+    .resulthead h2{font-size:24px}
+    button{width:100%}
+    .cta{padding:22px 18px}
+    .ihead h3{font-size:15px}
+  }
+  @media (max-width:380px){
+    .fig b{font-size:26px}
+    .figures{grid-template-columns:1fr}
+    .fig{border-right:0!important;border-bottom:1px solid var(--line)}
+  }
 </style>
 </head>
 <body>
