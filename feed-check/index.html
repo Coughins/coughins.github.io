@@ -175,7 +175,7 @@
            placeholder="yourstore.com" aria-label="Shopify store URL" required>
     <button id="go" type="submit">Scan store</button>
   </form>
-  <p class="hint">Nothing is uploaded and nothing is stored. Your browser reads the store's public product feed directly.</p>
+  <p class="hint">Your browser reads the store's public product feed directly. The catalogue data never touches a server of ours, and no account is involved.</p>
   <p class="examples">Try one:
     <button type="button" data-s="allbirds.com">allbirds.com</button> ·
     <button type="button" data-s="gymshark.com">gymshark.com</button> ·
@@ -189,7 +189,8 @@
 <h2 class="sec">How this works</h2>
 <div class="measure">
 <p>Every Shopify store publishes its catalogue at <code>/products.json</code>. It needs no login and no API key, and it is the same file Google Shopping, Meta catalogues and marketplace importers already read. This page asks your browser to fetch that file and counts what is in it.</p>
-<p>There is no server involved. Nothing about the store you check, or about you, reaches anyone — including us. That also means we cannot see your results, so if you want the full CSVs you have to ask.</p>
+<p>No server of ours touches the catalogue. Which store you scan and what it found stay in your browser — we never receive them, so if you want the full CSVs you have to tell us the store yourself.</p>
+<p>The one thing we do collect is a page-visit count, through GoatCounter: no cookies, no accounts, no cross-site tracking and no personal data — just whether anyone is finding this page at all. We would rather say so plainly than claim a purity we do not have.</p>
 </div>
 
 <h2 class="sec">What "dead" means, and why it costs money</h2>
@@ -518,5 +519,7 @@ Send me: (delete as needed)
   if (pre) { u.value = pre; run(pre); }
 }());
 </script>
+<script data-goatcounter="https://coughins.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
