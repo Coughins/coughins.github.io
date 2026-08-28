@@ -210,7 +210,9 @@
       } catch (e) { throw new Error(products.length ? 'PARTIAL' : 'UNREACHABLE'); }
       if (res.status === 404) throw new Error(products.length ? 'PARTIAL' : 'NOTFOUND');
       if (res.status === 430 || res.status === 429) throw new Error(products.length ? 'PARTIAL' : 'THROTTLED');
-      if (!res.ok) throw new Error(products.length ? 'PARTIAL' : 'HTTP' + res.status);
+      if (res.status === 401 || res.status === 403) throw new Error(products.length ? 'PARTIAL' : 'LOCKED');
+      if (res.status === 402) throw new Error(products.length ? 'PARTIAL' : 'FROZEN');
+      if (!res.ok) throw new Error(products.length ? 'PARTIAL' : 'HTTPERR');
       var data;
       try { data = await res.json(); } catch (e) { throw new Error('NOTSHOPIFY'); }
       if (!data || !Array.isArray(data.products)) throw new Error('NOTSHOPIFY');
@@ -381,7 +383,10 @@
   var MSG = {
     BADHOST: ['That does not look like a domain', 'Enter the storefront domain on its own, for example <code>allbirds.com</code>.'],
     EMPTY: ['Enter a store URL', 'Type the storefront domain and scan again.'],
-    UNREACHABLE: ['Could not reach that store', 'The domain may be wrong, or the store blocks direct requests from a browser. Check the spelling and try again.'],
+    UNREACHABLE: ['Could not read a product feed there', 'Usually this means the site is not on Shopify. It can also mean the domain is misspelled, or the store blocks browser requests. Your browser will not say which, for security reasons. Check the spelling, and try the <code>www.</code> version if you have not.'],
+    LOCKED: ['That store is password-protected', 'Shopify returns a lock on stores that are unlaunched, in development, or wholesale-only. Nothing here works around it. Remove the storefront password and the scan will run.'],
+    FROZEN: ['That store is not currently serving', 'Shopify returns this when a store is frozen or its plan has lapsed. The feed comes back when the store does.'],
+    HTTPERR: ['The store rejected the request', 'It answered, but not with a product feed. If it is on Shopify, try again in a minute.'],
     NOTFOUND: ['No public product feed there', 'That store either is not on Shopify, or the merchant has turned off the public product feed. Nothing here works around that.'],
     NOTSHOPIFY: ['That is not a Shopify product feed', 'The address answered, but not with a Shopify catalogue. This checker only reads Shopify storefronts.'],
     THROTTLED: ['The store asked us to slow down', 'It returned a rate limit. Wait a minute and try again — no attempt is made to get around it.'],
