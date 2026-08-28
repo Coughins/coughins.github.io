@@ -367,6 +367,24 @@
     });
 
     var subject = encodeURIComponent('Full audit for ' + r.host);
+    var body = encodeURIComponent(
+      'Store: ' + r.host + '
+'
+      + 'Score: ' + r.score + '/100
+'
+      + 'Fully out of stock: ' + r.dead + ' of ' + r.products + ' (' + r.deadPct + '%)
+'
+      + (REF ? 'Source: ' + REF + '
+' : '')
+      + '
+Send me: (delete as needed)
+'
+      + '  - the full audit, EUR 19
+'
+      + '  - my store plus up to 5 competitors, EUR 39
+'
+      + '  - weekly monitoring, EUR 19/month
+');
     html += '<div class="cta"><h3>Want the whole list?</h3>'
       + '<p>This page shows the first twelve of each. The full audit gives you every affected product as a CSV with live links, ordered by what is costing you most — delivered within 24 hours.</p>'
       + '<div class="tiers">'
@@ -374,7 +392,7 @@
       + '<div class="tier"><div class="nm">Competitive set</div><div class="pr">€39</div><div class="ds">You and up to five rivals: price bands, assortment depth, discount rates.</div></div>'
       + '<div class="tier"><div class="nm">Watch</div><div class="pr">€19<span style="font-size:14px">/mo</span></div><div class="ds">Weekly re-scan and a diff: what went dead, what came back, what moved price.</div></div>'
       + '</div>'
-      + '<p style="margin-top:18px;margin-bottom:0">Email <a href="mailto:seehuetterdominik@gmail.com?subject=' + subject + '">seehuetterdominik@gmail.com</a> with your store URL. Say what you want and an invoice follows — nothing is charged before you have seen your score, and you have already seen it.</p>'
+      + '<p style="margin-top:18px;margin-bottom:0">Email <a href="mailto:seehuetterdominik@gmail.com?subject=' + subject + '&body=' + body + '">seehuetterdominik@gmail.com</a> with your store URL. Say what you want and an invoice follows — nothing is charged before you have seen your score, and you have already seen it.</p>'
       + '</div>';
 
     out.innerHTML = html;
@@ -428,7 +446,10 @@
     b.addEventListener('click', function () { u.value = b.getAttribute('data-s'); run(u.value); });
   });
 
-  var pre = new URLSearchParams(location.search).get('store');
+  var params = new URLSearchParams(location.search);
+  var REF = (params.get('ref') || '').slice(0, 24).replace(/[^a-z0-9_-]/gi, '');
+
+  var pre = params.get('store');
   if (pre) { u.value = pre; run(pre); }
 }());
 </script>
