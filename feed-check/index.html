@@ -416,49 +416,29 @@
       html += '</div>';
     });
 
-    var subject = encodeURIComponent('Full audit for ' + r.host);
-    var body = encodeURIComponent(
-      'Store: ' + r.host + '
-'
-      + 'Score: ' + r.score + '/100
-'
-      + 'Fully out of stock: ' + r.dead + ' of ' + r.products + ' (' + r.deadPct + '%)
-'
-      + (REF ? 'Source: ' + REF + '
-' : '')
-      + '
-Send me: (delete as needed)
-'
-      + '  - the full audit, EUR 5
-'
-      + '  - my store plus up to 5 competitors, EUR 39
-'
-      + '  - weekly monitoring, EUR 19/month
-');
     var q = '?wanted=true&store=' + encodeURIComponent(r.host) + (REF ? '&ref=' + encodeURIComponent(REF) : '');
-    var BUY = 'https://coughins.gumroad.com/l/';
-    var tiers = [
-      ['shopify-feed-audit', 'Full audit', '€5', '',
-       'Every issue, every product, as CSVs with live links, plus a fix order. Delivered within 24 hours.', true],
-      ['shopify-competitive-set', 'Competitive set', '€39', '',
-       'You and up to five rivals on price bands, assortment depth, discount rates and dead stock.', false],
-      ['shopify-feed-watch', 'Watch', '€19', '/mo',
-       'A re-scan every week and a diff: what went dead, what came back, what moved price.', false]
-    ];
+    var BUY = 'https://coughins.gumroad.com/l/shopify-feed-audit';
+    var mail = 'mailto:seehuetterdominik@gmail.com'
+      + '?subject=' + encodeURIComponent('Feed audit for ' + r.host)
+      + '&body=' + encodeURIComponent(
+          'Store: ' + r.host + '\n'
+          + 'Score: ' + r.score + '/100\n'
+          + 'Fully out of stock: ' + r.dead + ' of ' + r.products + ' (' + r.deadPct + '%)\n'
+          + (REF ? 'Source: ' + REF + '\n' : ''));
 
     html += '<div class="cta"><h3>Want the whole list?</h3>'
-      + '<p>This page shows the first twelve of each. Your store URL is carried through to checkout, so I know which store to run.</p>'
+      + '<p>This page shows the first twelve of each. The full report has every affected product '
+      + 'with a direct link, plus your complete catalogue as CSV and Excel.</p>'
       + '<div class="tiers">'
-      + tiers.map(function (t) {
-          return '<a class="tier' + (t[5] ? ' primary' : '') + '" href="' + BUY + t[0] + q + '"'
-            + ' target="_blank" rel="noopener noreferrer">'
-            + '<div class="nm">' + t[1] + '</div>'
-            + '<div class="pr">' + t[2] + (t[3] ? '<span style="font-size:14px">' + t[3] + '</span>' : '') + '</div>'
-            + '<div class="ds">' + t[4] + '</div>'
-            + '<div class="go">Get it →</div></a>';
-        }).join('')
+      + '<a class="tier primary" href="' + BUY + q + '" target="_blank" rel="noopener noreferrer">'
+      + '<div class="nm">Full report for ' + esc(r.host) + '</div>'
+      + '<div class="pr">EUR 5</div>'
+      + '<div class="ds">Every issue and every product, as CSV and Excel. You unlock it yourself '
+      + 'the moment you pay and it runs in your own browser, so there is nothing to wait for.</div>'
+      + '<div class="go">Get it now</div></a>'
       + '</div>'
-      + '<p class="alt">30-day money back, no questions. Prefer to ask first? <a href="mailto:seehuetterdominik@gmail.com?subject=' + subject + '&body=' + body + '">Email me</a> and I will reply with your options.</p>'
+      + '<p class="alt">30-day money back, no questions asked. Rather ask first? '
+      + '<a href="' + mail + '">Email me</a>.</p>'
       + '</div>';
 
     out.innerHTML = html;
